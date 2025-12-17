@@ -1,5 +1,6 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using kafeApi.API.Middlewares;
 using KafeApi.Application.Dtos.CategoryDtos;
 using KafeApi.Application.Dtos.MenuItemDto;
 using KafeApi.Application.Dtos.MenuItemsDto;
@@ -135,6 +136,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 

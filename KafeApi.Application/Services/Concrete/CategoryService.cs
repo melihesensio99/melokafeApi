@@ -33,47 +33,33 @@ namespace KafeApi.Application.Services.Concrete
 
         public async Task<ResponseDto<object>> AddCategory(CreateCategoryDto createCategoryDto)
         {
-            try
-            {
-                var validation = await _validation.ValidateAsync(createCategoryDto);
-                if (!validation.IsValid)
-                {
-                    return new ResponseDto<object>
-                    {
-                        Data = null,
-                        ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                        Success = false,
-                        Message = string.Join(Environment.NewLine, validation.Errors.Select(x => x.ErrorMessage))
-                    };
-                }
-                var result = _mapper.Map<Category>(createCategoryDto);
 
-                await _genericRepository.CreateAsync(result);
-                return new ResponseDto<object>
-                {
-                    Data = result,
-                    Success = true,
-                    Message = "Kategori eklendi."
-                };
-            }
-
-            catch (Exception ex)
+            var validation = await _validation.ValidateAsync(createCategoryDto);
+            if (!validation.IsValid)
             {
                 return new ResponseDto<object>
                 {
+                    Data = null,
+                    ErrorCode = ErrorCodes.VALIDATION_ERROR,
                     Success = false,
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Message = "Başarısız işlem!!"
+                    Message = string.Join(Environment.NewLine, validation.Errors.Select(x => x.ErrorMessage))
                 };
-
             }
+            var result = _mapper.Map<Category>(createCategoryDto);
+
+            await _genericRepository.CreateAsync(result);
+            return new ResponseDto<object>
+            {
+                Data = result,
+                Success = true,
+                Message = "Kategori eklendi."
+            };
         }
 
 
         public async Task<ResponseDto<object>> DeleteCategory(int id)
         {
-            try
-            {
+            
                 var result = await _genericRepository.GetByIdAsync(id);
                 if (result == null)
                 {
@@ -94,23 +80,11 @@ namespace KafeApi.Application.Services.Concrete
                     Message = "Kategori silindi."
                 };
 
-            }
-            catch (Exception ex)
-            {
-                return new ResponseDto<object>
-                {
-                    Success = false,
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Message = "Başarısız işlem!!"
-                };
-            }
-
         }
 
         public async Task<ResponseDto<List<ResultCategoryDto>>> GetAllCategories()
         {
-            try
-            {
+           
                 var categories = await _genericRepository.GetAllAsync();
                 if (categories.Count == 0)
                 {
@@ -129,23 +103,11 @@ namespace KafeApi.Application.Services.Concrete
                     Data = result
 
                 };
-            }
-            catch (Exception exception)
-            {
-                return new ResponseDto<List<ResultCategoryDto>>
-                {
-                    Message = "Başarısız işlem!!",
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Success = false
-                };
-            }
-
         }
 
         public async Task<ResponseDto<DetailCategoryDto>> GetCategoryWithMenuItems(int id)
         {
-            try
-            {
+            
                 var categoryWithMenuItems = await _categoryRepository.GetCategoryWithMenuItemsAsync(id);
                 if (categoryWithMenuItems == null)
                 {
@@ -163,22 +125,11 @@ namespace KafeApi.Application.Services.Concrete
                     Success = true,
                     Data = result
                 };
-            }
-            catch (Exception)
-            {
-                return new ResponseDto<DetailCategoryDto>
-                {
-                    Message = "Başarısız işlem!!",
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Success = false
-                };
-            }
         }
 
         public async Task<ResponseDto<DetailCategoryDto>> GetCategoryById(int id)
         {
-            try
-            {
+           
                 var category = await _genericRepository.GetByIdAsync(id);
                 if (category == null)
                 {
@@ -198,22 +149,10 @@ namespace KafeApi.Application.Services.Concrete
 
                 };
 
-            }
-            catch (Exception ex)
-            {
-                return new ResponseDto<DetailCategoryDto>
-                {
-                    Success = false,
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Message = "Başarısız işlem!!"
-                };
-
-            }
         }
         public async Task<ResponseDto<object>> UpdateCategory(UpdateCategoryDto update)
         {
-            try
-            {
+           
                 var validation = await _validationn.ValidateAsync(update);
                 if (!validation.IsValid)
                 {
@@ -248,25 +187,10 @@ namespace KafeApi.Application.Services.Concrete
                     Success = true,
                     Message = "Kategori Guncellendi."
                 };
-            }
-            catch (Exception ex)
-            {
-
-                return new ResponseDto<object>
-                {
-                    Success = false,
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Message = "Başarısız işlem!!"
-                };
-            }
-
-
         }
         public async Task<ResponseDto<List<ResultCategoryWithMenuItems>>> GetAllCategoreisWithMenuItems()
         {
-            try
-            {
-                var allCategoriesWithMenuItems = await _categoryRepository.GetAllCategoriesWithMenuItemsAsync();
+           var allCategoriesWithMenuItems = await _categoryRepository.GetAllCategoriesWithMenuItemsAsync();
                 if (allCategoriesWithMenuItems.Count == 0)
                 {
                     return new ResponseDto<List<ResultCategoryWithMenuItems>>
@@ -284,16 +208,7 @@ namespace KafeApi.Application.Services.Concrete
                     Success = true,
                     Data = result
                 };
-            }
-            catch (Exception)
-            {
-                return new ResponseDto<List<ResultCategoryWithMenuItems>>
-                {
-                    Message = "Başarısız işlem!!",
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Success = false
-                };
-            }
+            
         }
     }
 }

@@ -33,334 +33,238 @@ namespace KafeApi.Application.Services.Concrete
 
         public async Task<ResponseDto<object>> AddTable(CreateTableDto createTableDto)
         {
-            try
-            {
-                var checkValidation = await _addvalidation.ValidateAsync(createTableDto);
-                if (!checkValidation.IsValid)
-                {
-                    return new ResponseDto<object>
-                    {
-                        ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                        Data = null,
-                        Message = "Başarısız işlem!!!",
-                        Success = false
-                    };
-                }
-                var checkTableNumber = await _tableRepository.IsTableNumberExistsAsync(createTableDto.TableNumber);
-                if (checkTableNumber)
-                {
-                    return new ResponseDto<object>
-                    {
-                        ErrorCode = ErrorCodes.CONFLICT,
-                        Message = "TableNumber mevcut!!!",
-                        Success = false
-                    };
-                }
 
-                var result = _mapper.Map<Table>(createTableDto);
-                await _genericRepository.CreateAsync(result);
-
-                return new ResponseDto<object>
-                {
-                    Data = result,
-                    Success = true,
-                    Message = "Table başarıyla eklendi."
-                };
-            }
-
-            catch (Exception)
+            var checkValidation = await _addvalidation.ValidateAsync(createTableDto);
+            if (!checkValidation.IsValid)
             {
                 return new ResponseDto<object>
                 {
-                    Success = false,
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Message = "Başarısız işlem!!"
+                    ErrorCode = ErrorCodes.VALIDATION_ERROR,
+                    Data = null,
+                    Message = "Başarısız işlem!!!",
+                    Success = false
                 };
             }
+            var checkTableNumber = await _tableRepository.IsTableNumberExistsAsync(createTableDto.TableNumber);
+            if (checkTableNumber)
+            {
+                return new ResponseDto<object>
+                {
+                    ErrorCode = ErrorCodes.CONFLICT,
+                    Message = "TableNumber mevcut!!!",
+                    Success = false
+                };
+            }
+
+            var result = _mapper.Map<Table>(createTableDto);
+            await _genericRepository.CreateAsync(result);
+
+            return new ResponseDto<object>
+            {
+                Data = result,
+                Success = true,
+                Message = "Table başarıyla eklendi."
+            };
         }
+
 
         public async Task<ResponseDto<object>> DeleteTable(int id)
         {
-            try
+            var itemToDelete = await _genericRepository.GetByIdAsync(id);
+            if (itemToDelete == null)
             {
-                var itemToDelete = await _genericRepository.GetByIdAsync(id);
-                if (itemToDelete == null)
-                {
-                    return new ResponseDto<object>
-                    {
-                        Data = null,
-                        Success = false,
-                        ErrorCode = ErrorCodes.NOT_FOUND_STATUS
-                    };
-                }
-                await _genericRepository.DeleteAsync(itemToDelete);
                 return new ResponseDto<object>
                 {
-                    Success = true,
-                    Message = "Table başarıyla kaldırıldı."
-                };
-
-            }
-            catch (Exception)
-            {
-
-                return new ResponseDto<object>
-                {
+                    Data = null,
                     Success = false,
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Message = "Başarısız işlem!!",
+                    ErrorCode = ErrorCodes.NOT_FOUND_STATUS
                 };
             }
+            await _genericRepository.DeleteAsync(itemToDelete);
+            return new ResponseDto<object>
+            {
+                Success = true,
+                Message = "Table başarıyla kaldırıldı."
+            };
+
         }
+
 
         public async Task<ResponseDto<List<ResultTableDto>>> GetAllActiveTables()
         {
-            try
-            {
-                var activeTables = await _tableRepository.GetAllActiveTablesAsync();
-                if (activeTables.Count == 0)
-                {
-                    return new ResponseDto<List<ResultTableDto>>
-                    {
-                        Success = false,
-                        ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
-                        Message = "Başarısız işlem!!!",
-                        Data = null
-                    };
-                }
-                var result = _mapper.Map<List<ResultTableDto>>(activeTables);
-                return new ResponseDto<List<ResultTableDto>>
-                {
-                    Success = true,
-                    Data = result,
-                };
-            }
-            catch (Exception)
+            var activeTables = await _tableRepository.GetAllActiveTablesAsync();
+            if (activeTables.Count == 0)
             {
                 return new ResponseDto<List<ResultTableDto>>
                 {
                     Success = false,
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Message = "Başarısız işlem!!!"
-                };
-            }
-        }
-
-        public async Task<ResponseDto<List<ResultTableDto>>> GetAllTables()
-        {
-            try
-            {
-                var allTables = await _genericRepository.GetAllAsync();
-                if (allTables.Count == 0)
-                {
-                    return new ResponseDto<List<ResultTableDto>>
-                    {
-                        Success = false,
-                        ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
-                        Message = "Başarısız işlem!!!",
-                        Data = null
-                    };
-                }
-                var result = _mapper.Map<List<ResultTableDto>>(allTables);
-                return new ResponseDto<List<ResultTableDto>>
-                {
-                    Data = result,
-                    Success = true,
-                };
-            }
-            catch (Exception)
-            {
-
-                return new ResponseDto<List<ResultTableDto>>
-                {
-                    Success = false,
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Message = "Başarısız işlem!!"
-                };
-            }
-        }
-        public async Task<ResponseDto<DetailTableDto>> GetTableById(int id)
-        {
-            try
-            {
-                var table = await _genericRepository.GetByIdAsync(id);
-                if (table == null)
-                {
-                    return new ResponseDto<DetailTableDto>
-                    {
-                        Success = false,
-                        ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
-                        Message = "Başarısız işlem!!!"
-                    };
-                }
-                var result = _mapper.Map<DetailTableDto>(table);
-                return new ResponseDto<DetailTableDto>
-                {
-                    Success = true,
-                    Data = result,
-                };
-            }
-            catch (Exception ex)
-            {
-                return new ResponseDto<DetailTableDto>
-                {
-                    Success = false,
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Message = "Başarısız işlem!!",
+                    ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
+                    Message = "Başarısız işlem!!!",
                     Data = null
                 };
             }
-        }
-        public async Task<ResponseDto<DetailTableDto>> GetTableByTableNumber(int tableNumber)
-        {
-            try
+            var result = _mapper.Map<List<ResultTableDto>>(activeTables);
+            return new ResponseDto<List<ResultTableDto>>
             {
-                var number = await _tableRepository.GetTableByTableNumberAsync(tableNumber);
-                if (number == null)
+                Success = true,
+                Data = result,
+            };
+        }
+
+
+        public async Task<ResponseDto<List<ResultTableDto>>> GetAllTables()
+        {
+
+            var allTables = await _genericRepository.GetAllAsync();
+            if (allTables.Count == 0)
+            {
+                return new ResponseDto<List<ResultTableDto>>
                 {
-                    return new ResponseDto<DetailTableDto>
-                    {
-                        Success = false,
-                        ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
-                        Message = "Başarısız işlem!!!",
-                        Data = null
-                    };
-                }
-                var result = _mapper.Map<DetailTableDto>(number);
-                return new ResponseDto<DetailTableDto>
-                {
-                    Data = result,
-                    Success = true
+                    Success = false,
+                    ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
+                    Message = "Başarısız işlem!!!",
+                    Data = null
                 };
             }
-            catch (Exception)
+            var result = _mapper.Map<List<ResultTableDto>>(allTables);
+            return new ResponseDto<List<ResultTableDto>>
+            {
+                Data = result,
+                Success = true,
+            };
+        }
+
+        public async Task<ResponseDto<DetailTableDto>> GetTableById(int id)
+        {
+
+            var table = await _genericRepository.GetByIdAsync(id);
+            if (table == null)
             {
                 return new ResponseDto<DetailTableDto>
                 {
                     Success = false,
-                    ErrorCode = ErrorCodes.EXCEPTION,
+                    ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
                     Message = "Başarısız işlem!!!"
                 };
             }
+            var result = _mapper.Map<DetailTableDto>(table);
+            return new ResponseDto<DetailTableDto>
+            {
+                Success = true,
+                Data = result,
+            };
         }
+
+        public async Task<ResponseDto<DetailTableDto>> GetTableByTableNumber(int tableNumber)
+        {
+
+            var number = await _tableRepository.GetTableByTableNumberAsync(tableNumber);
+            if (number == null)
+            {
+                return new ResponseDto<DetailTableDto>
+                {
+                    Success = false,
+                    ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
+                    Message = "Başarısız işlem!!!",
+                    Data = null
+                };
+            }
+            var result = _mapper.Map<DetailTableDto>(number);
+            return new ResponseDto<DetailTableDto>
+            {
+                Data = result,
+                Success = true
+            };
+        }
+
 
         public async Task<ResponseDto<object>> UpdateTable(UpdateTableDto updateTableDto)
         {
-            try
+
+            var checkValidation = await _updatevalidation.ValidateAsync(updateTableDto);
+            if (!checkValidation.IsValid)
             {
-                var checkValidation = await _updatevalidation.ValidateAsync(updateTableDto);
-                if (!checkValidation.IsValid)
-                {
-                    return new ResponseDto<object>
-                    {
-                        ErrorCode = ErrorCodes.VALIDATION_ERROR,
-                        Data = null,
-                        Message = "Başarısız işlem!!!",
-                        Success = false
-                    };
-                }
-                var tableToUpdate = await _genericRepository.GetByIdAsync(updateTableDto.Id);
-                if (tableToUpdate == null)
-                {
-                    return new ResponseDto<object>
-                    {
-                        Success = false,
-                        ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
-                        Message = "Bir hata oluştu!!",
-                        Data = null
-                    };
-                }
-                var checkTableNumber = await _tableRepository.IsTableNumberExistsAsync(updateTableDto.TableNumber);
-                if (checkTableNumber)
-                {
-                    return new ResponseDto<object>
-                    {
-                        Data = null,
-                        ErrorCode = ErrorCodes.CONFLICT,
-                        Message = "TableNumber mevcut!!!"
-                    };
-                }
-                var result = _mapper.Map(updateTableDto, tableToUpdate);
-                await _genericRepository.UpdateAsync(result);
                 return new ResponseDto<object>
                 {
-                    Success = true,
-                    Data = result,
-                    Message = "Table başarıyla güncellendi."
+                    ErrorCode = ErrorCodes.VALIDATION_ERROR,
+                    Data = null,
+                    Message = "Başarısız işlem!!!",
+                    Success = false
                 };
             }
-            catch (Exception)
+            var tableToUpdate = await _genericRepository.GetByIdAsync(updateTableDto.Id);
+            if (tableToUpdate == null)
             {
                 return new ResponseDto<object>
                 {
                     Success = false,
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Message = "Başarısız işlem!!"
+                    ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
+                    Message = "Bir hata oluştu!!",
+                    Data = null
                 };
             }
+            var checkTableNumber = await _tableRepository.IsTableNumberExistsAsync(updateTableDto.TableNumber);
+            if (checkTableNumber)
+            {
+                return new ResponseDto<object>
+                {
+                    Data = null,
+                    ErrorCode = ErrorCodes.CONFLICT,
+                    Message = "TableNumber mevcut!!!"
+                };
+            }
+            var result = _mapper.Map(updateTableDto, tableToUpdate);
+            await _genericRepository.UpdateAsync(result);
+            return new ResponseDto<object>
+            {
+                Success = true,
+                Data = result,
+                Message = "Table başarıyla güncellendi."
+            };
         }
+
         public async Task<ResponseDto<object>> UpdateTableStatusById(int id)
         {
-            try
-            {
-                var updateStatusById = await _tableRepository.UpdateTableStatusByIdAsync(id);
-                if (updateStatusById == null)
-                {
-                    return new ResponseDto<object>
-                    {
-                        Success = false,
-                        ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
-                        Message = "Başarısız işlem!!!",
-                        Data = null
-                    };
-                }
-                return new ResponseDto<object>
-                {
-                    Success = true,
-                    Message = "Status başarıyla güncellendi.",
-                };
 
-            }
-            catch (Exception)
+            var updateStatusById = await _tableRepository.UpdateTableStatusByIdAsync(id);
+            if (updateStatusById == null)
             {
                 return new ResponseDto<object>
                 {
                     Success = false,
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Message = "Başarısız işlem!!!"
+                    ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
+                    Message = "Başarısız işlem!!!",
+                    Data = null
                 };
             }
+            return new ResponseDto<object>
+            {
+                Success = true,
+                Message = "Status başarıyla güncellendi.",
+            };
+
         }
+
         public async Task<ResponseDto<object>> UpdateTableStatusByTableNumber(int tableNumber)
         {
-            try
-            {
-                var updateStatusByTableNumber = await _tableRepository.UpdateTableStatusByTableNumberAsync(tableNumber);
-                if (updateStatusByTableNumber == null)
-                {
-                    return new ResponseDto<object>
-                    {
-                        Success = false,
-                        ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
-                        Message = "Başarısız işlem!!!",
-                        Data = null
-                    };
-                }
-                return new ResponseDto<object>
-                {
-                    Success = true,
-                    Message = "Status başarıyla güncellendi.",
-                };
-            }
-            catch (Exception)
+
+            var updateStatusByTableNumber = await _tableRepository.UpdateTableStatusByTableNumberAsync(tableNumber);
+            if (updateStatusByTableNumber == null)
             {
                 return new ResponseDto<object>
                 {
                     Success = false,
-                    ErrorCode = ErrorCodes.EXCEPTION,
+                    ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
                     Message = "Başarısız işlem!!!",
+                    Data = null
                 };
             }
+            return new ResponseDto<object>
+            {
+                Success = true,
+                Message = "Status başarıyla güncellendi.",
+            };
         }
+
     }
 }
