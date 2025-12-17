@@ -59,8 +59,7 @@ namespace KafeApi.Persistence.Repository
             {
                 return new UserDto { Id = user.Id, Email = user.Email };
             }
-            return new UserDto { Id = user.Id, Email = user.Email }
-            ;
+            return null;
 
         }
 
