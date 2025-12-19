@@ -16,13 +16,21 @@ namespace kafeApi.API.Middlewares
         {
             var sw = Stopwatch.StartNew();
             var request = context.Request; 
-            var ip = context.Connection.RemoteIpAddress?.ToString();
+            var ip = context.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
             Log.Information("Gelen istek: {Method} {Path} - {IP}", request.Method, request.Path, ip);
+
+            context.Response.OnStarting(() =>
+            {
+                sw.Stop();
+                context.Response.Headers.Append("X-Process-Time", $"{sw.ElapsedMilliseconds}ms");
+                return Task.CompletedTask;
+            });
 
             try
             {
                 await _next(context);
                 sw.Stop();
+
                 Log.Information("Yanıt : {StatusCode} - Sure : {Elapsed} ms",
                     context.Response.StatusCode, sw.ElapsedMilliseconds);
             }

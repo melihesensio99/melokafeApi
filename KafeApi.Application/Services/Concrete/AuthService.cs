@@ -29,7 +29,7 @@ namespace KafeApi.Application.Services.Concrete
         public async Task<ResponseDto<object>> GenerateToken(LoginDto loginDto)
         {
             var userCheck = await _userRepository.CheckUserAsync(loginDto.Email);
-            if (userCheck.Id != null)
+            if (userCheck != null)
             {
                 var user = await _userRepository.CheckUserWithPasswordAsync(loginDto);
                 if (user)
@@ -47,10 +47,11 @@ namespace KafeApi.Application.Services.Concrete
                         Data = token
                     };
                 }
-
             }
-            return new ResponseDto<object> { Success = false , ErrorCode = ErrorCodes.VALIDATION_ERROR ,  Message = "Hatalı Giriş!"};
-            
+            return new ResponseDto<object> { Success = false, ErrorCode = ErrorCodes.VALIDATION_ERROR, Message = "Hatalı Giriş!" };
+
+
+
 
         }
     }

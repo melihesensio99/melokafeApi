@@ -31,7 +31,16 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 1. Serilog initialization (DO THIS FIRST)
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .CreateLogger();
 
+builder.Host.UseSerilog();
+
+builder.Services.AddMemoryCache();
+builder.Services.AddResponseCaching();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 options
@@ -53,20 +62,21 @@ builder.Services.AddIdentity<AppIdentityUser, AppIdentityRole>(options =>
 
 
 
-builder.Services.AddSingleton<Serilog.ILogger>(Log.Logger);
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-builder.Services.AddScoped(typeof(ICategoryService), typeof(CategoryService));
-builder.Services.AddScoped(typeof(IMenuItemService), typeof(MenuItemService));
-builder.Services.AddScoped(typeof(ITableRepository), typeof(TableRepository));
-builder.Services.AddScoped(typeof(ITableService), typeof(TableService));
-builder.Services.AddScoped(typeof(IOrderService), typeof(OrderService));
-builder.Services.AddScoped(typeof(IOrderItemService), typeof(OrderItemService));
-builder.Services.AddScoped(typeof(IOrderItemRepository), typeof(OrderItemRepository));
-builder.Services.AddScoped(typeof(IOrderRepository), typeof(OrderRepository));
-builder.Services.AddScoped(typeof(ICategoryRepository), typeof(CategoryRepository));
-builder.Services.AddScoped(typeof(IAuthService), typeof(AuthService));
-builder.Services.AddScoped(typeof(IUserRepository), typeof(UserRepository));
-builder.Services.AddScoped(typeof(IUserService), typeof(UserService));
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IMenuItemService, MenuItemService>();
+builder.Services.AddScoped<ITableRepository, TableRepository>();
+builder.Services.AddScoped<ITableService, TableService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IOrderItemService, OrderItemService>();
+builder.Services.AddScoped<IOrderItemRepository, OrderItemRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ICacheService, CacheService>();
+builder.Services.AddScoped<ILogService, LogService>();
 builder.Services.AddScoped<TokenHelpers>();
 
 
@@ -88,12 +98,6 @@ builder.Services.AddAuthentication(options =>
     };
  });
 
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-.Enrich.FromLogContext()
-.CreateLogger();
-builder.Host.UseSerilog();
-
 
 builder.Services.AddValidatorsFromAssemblyContaining(typeof(CreateCategoryDto));
 builder.Services.AddValidatorsFromAssemblyContaining(typeof(UpdateCategoryDto));
@@ -108,9 +112,6 @@ builder.Services.AddValidatorsFromAssemblyContaining(typeof(UpdateOrderItemDto))
 builder.Services.AddValidatorsFromAssemblyContaining(typeof(RegisterDto));
 
 
-
-
-
 builder.Services.AddAutoMapper(typeof(GeneralMapping));
 
 
@@ -121,8 +122,6 @@ builder.Services.AddHttpContextAccessor();
 
 
 var app = builder.Build();
-
-builder.Services.AddEndpointsApiExplorer();
 
 
 app.MapScalarApiReference(options =>
@@ -141,7 +140,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-
+app.UseResponseCaching();
 app.UseHttpsRedirection();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseMiddleware<SerilogMiddleware>();

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using KafeApi.Application.Constants;
 using KafeApi.Application.Dtos.MenuItemDto;
 using KafeApi.Application.Dtos.MenuItemDtos;
 using KafeApi.Application.Dtos.MenuItemsDto;
@@ -7,6 +8,9 @@ using KafeApi.Application.Interfaces;
 using KafeApi.Application.Services.Abstract;
 using KafeApi.Application.Validators.MenuItem;
 using KafeApi.Domain.Entities;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,14 +26,20 @@ namespace KafeApi.Application.Services.Concrete
         private readonly IMapper _mapper;
         private readonly AddMenuItemValidator _validation;
         private readonly UpdateMenuItemValidator _validationn;
+        private readonly IMemoryCache _memoryCache;
+        private readonly ILogService _logger;
+        private readonly IConfiguration _configuration;
 
-        public MenuItemService(IGenericRepository<MenuItem> genericRepository, IMapper mapper, AddMenuItemValidator validation, UpdateMenuItemValidator validationn, IGenericRepository<Category> genericRepositoryCategory)
+        public MenuItemService(IGenericRepository<MenuItem> genericRepository, IMapper mapper, AddMenuItemValidator validation, UpdateMenuItemValidator validationn, IGenericRepository<Category> genericRepositoryCategory, IMemoryCache memoryCache, ILogService logger , IConfiguration configuration    )
         {
             _validation = validation;
             _validationn = validationn;
             _genericRepository = genericRepository;
             _mapper = mapper;
             _genericRepositoryCategory = genericRepositoryCategory;
+            _memoryCache = memoryCache;
+            _logger = logger;
+            _configuration = configuration;
         }
 
         public async Task<ResponseDto<object>> AddMenuItem(CreateMenuItemDto createMenuItemDto)
@@ -49,6 +59,7 @@ namespace KafeApi.Application.Services.Concrete
 
             var result = _mapper.Map<MenuItem>(createMenuItemDto);
             await _genericRepository.CreateAsync(result);
+            _memoryCache.Remove(CacheKeys.AllMenuItems);
             return new ResponseDto<object>
             {
                 Data = result,
@@ -72,6 +83,7 @@ namespace KafeApi.Application.Services.Concrete
                 };
             }
             _genericRepository.DeleteAsync(menuItemToDelete);
+            _memoryCache.Remove(CacheKeys.AllMenuItems);
             return new ResponseDto<object>
             {
                 Success = true,
@@ -83,9 +95,19 @@ namespace KafeApi.Application.Services.Concrete
 
         public async Task<ResponseDto<List<ResultMenuItemDto>>> GetAllMenuItem()
         {
-            var allMenuItems = await _genericRepository.GetAllAsync();
-            var listCategory = await _genericRepositoryCategory.GetAllAsync();
-            if (allMenuItems.Count == 0)
+            var cache = _memoryCache.TryGetValue(CacheKeys.AllMenuItems, out List<MenuItem> menuItems);
+            if (!cache)
+            {
+                _logger.LogInfo("MenuItems cache'de bulunamadı, veritabanından getiriliyor...");
+                menuItems = await _genericRepository.GetAllAsync();
+                if (menuItems != null && menuItems.Any())
+                {
+                    var expirationMinutes = _configuration.GetValue<int>("CacheSettings:DefaultExpirationMinutes", 10);
+                    _memoryCache.Set(CacheKeys.AllMenuItems, menuItems, TimeSpan.FromMinutes(expirationMinutes));
+                }
+
+            }
+            if (menuItems.Count == 0)
             {
                 return new ResponseDto<List<ResultMenuItemDto>>
                 {
@@ -95,7 +117,7 @@ namespace KafeApi.Application.Services.Concrete
                     Data = null
                 };
             }
-            var result = _mapper.Map<List<ResultMenuItemDto>>(allMenuItems);
+            var result = _mapper.Map<List<ResultMenuItemDto>>(menuItems);
             return new ResponseDto<List<ResultMenuItemDto>>
             {
                 Success = true,
@@ -107,9 +129,19 @@ namespace KafeApi.Application.Services.Concrete
 
         public async Task<ResponseDto<DetailMenuItemDto>> GetMenuItemById(int id)
         {
-
-            var menuItem = await _genericRepository.GetByIdAsync(id);
-            if (menuItem == null)
+          MenuItem menuItems = null;   
+            if(_memoryCache.TryGetValue(CacheKeys.AllMenuItems , out List<MenuItem> cachedMenuItems))
+            {
+              
+               menuItems = cachedMenuItems.FirstOrDefault( x =>x.Id == id);  
+            }
+            if (menuItems == null) 
+            {
+                _logger.LogInfo($"GetMenuItemById Cachede kayitli degil veritabanindan getiriliyor id : {id}");
+                menuItems = await _genericRepository.GetByIdAsync(id);
+            }
+           
+            if (menuItems == null)
             {
                 return new ResponseDto<DetailMenuItemDto>
                 {
@@ -119,13 +151,12 @@ namespace KafeApi.Application.Services.Concrete
                     Data = null
                 };
             }
-            var result = _mapper.Map<DetailMenuItemDto>(menuItem);
+            var result = _mapper.Map<DetailMenuItemDto>(menuItems);
             return new ResponseDto<DetailMenuItemDto>
             {
                 Data = result,
                 Success = true
             };
-
         }
 
         public async Task<ResponseDto<object>> UpdateMenuItem(UpdateMenuItemDto updateMenuItemDto)
@@ -155,6 +186,7 @@ namespace KafeApi.Application.Services.Concrete
             }
             var result = _mapper.Map(updateMenuItemDto, menuItemToUpdate);
             await _genericRepository.UpdateAsync(result);
+            _memoryCache.Remove(CacheKeys.AllMenuItems);
             return new ResponseDto<object>
             {
                 Data = result,

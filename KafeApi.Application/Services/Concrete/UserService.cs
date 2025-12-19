@@ -65,8 +65,6 @@ namespace KafeApi.Application.Services.Concrete
 
         }
 
-
-
         public async Task<ResponseDto<List<UserDto>>> GetUsersWithRole()
         {
 

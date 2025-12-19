@@ -67,6 +67,7 @@ namespace KafeApi.Persistence.Repository
         public async Task<bool> CheckUserWithPasswordAsync(LoginDto loginDto)
         {
             var user = await _userManager.FindByEmailAsync(loginDto.Email);
+            if (user == null) return false;
             var result = await _userManager.CheckPasswordAsync(user, loginDto.Password);
             return result;
 
@@ -76,7 +77,7 @@ namespace KafeApi.Persistence.Repository
         public async Task<List<UserDto>> GetUsersWithRoleAsync()
         {
             var users = await _userManager.Users.ToListAsync();
-            var list = new List<UserDto>(users.Count);
+            var list = new List<UserDto>();
 
             foreach (var u in users)
             {
@@ -116,6 +117,7 @@ namespace KafeApi.Persistence.Repository
             var result = await _userManager.CreateAsync(user, registerDto.Password);
             return result;
         }
+
 
     }
 }
