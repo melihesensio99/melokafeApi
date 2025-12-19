@@ -30,7 +30,7 @@ namespace KafeApi.Application.Helpers
             var claims = new List<Claim>
             {
                 new Claim("_email",  tokenDto.Email),
-                new Claim("_Role",  tokenDto.Role),
+                new Claim("role",  tokenDto.Role),
                  new Claim("_id",  tokenDto.Id),
 
                  new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())

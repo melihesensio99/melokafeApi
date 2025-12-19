@@ -28,53 +28,30 @@ namespace KafeApi.Application.Services.Concrete
 
         public async Task<ResponseDto<object>> GenerateToken(LoginDto loginDto)
         {
-            try
+            var userCheck = await _userRepository.CheckUserAsync(loginDto.Email);
+            if (userCheck.Id != null)
             {
-                var userCheck = await _userRepository.CheckUserAsync(loginDto.Email);
-                if (userCheck.Id != null)
+                var user = await _userRepository.CheckUserWithPasswordAsync(loginDto);
+                if (user)
                 {
-                    var user = await _userRepository.CheckUserWithPasswordAsync(loginDto);
-                    if (user)
+                    var tokenDto = new TokenDto
                     {
-                        var tokenDto = new TokenDto
-                        {
-                            Email = loginDto.Email,
-                            Id = userCheck.Id,
-                            Role = "Admin"
-                        };
-                        var token = _tokenHelpers.GenerateToken(tokenDto);
-                        return new ResponseDto<object>
-                        {
-                            Success = true,
-                            Data = token
-                        };
-                    }
+                        Email = loginDto.Email,
+                        Id = userCheck.Id,
+                        Role = userCheck.Role
+                    };
+                    var token = _tokenHelpers.GenerateToken(tokenDto);
                     return new ResponseDto<object>
                     {
-                        Success = false,
-                        Data = null,
-                        ErrorCode = ErrorCodes.UNAUTHORIZED,
-                        Message = "Başarısız işlem!!!"
+                        Success = true,
+                        Data = token
                     };
                 }
-                return new ResponseDto<object>
-                {
-                    Success = false,
-                    Data = null,
-                    ErrorCode = ErrorCodes.UNAUTHORIZED,
-                    Message = "Başarısız işlem!!!"
-                };
+
             }
-            catch (Exception)
-            {
-                return new ResponseDto<object>
-                {
-                    Data = null,
-                    Success = false,
-                    ErrorCode = ErrorCodes.EXCEPTION,
-                    Message = "Başarısız işlem!!"
-                };
-            }
+            return new ResponseDto<object> { Success = false , ErrorCode = ErrorCodes.VALIDATION_ERROR ,  Message = "Hatalı Giriş!"};
+            
+
         }
     }
 }

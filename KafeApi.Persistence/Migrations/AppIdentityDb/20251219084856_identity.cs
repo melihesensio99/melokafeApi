@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace KafeApi.Persistence.Migrations
+namespace KafeApi.Persistence.Migrations.AppIdentityDb
 {
     /// <inheritdoc />
-    public partial class migtables1 : Migration
+    public partial class identity : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

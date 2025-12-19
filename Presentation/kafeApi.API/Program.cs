@@ -24,6 +24,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
+using Serilog;
 using System.Text;
 
 
@@ -52,7 +53,7 @@ builder.Services.AddIdentity<AppIdentityUser, AppIdentityRole>(options =>
 
 
 
-
+builder.Services.AddSingleton<Serilog.ILogger>(Log.Logger);
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped(typeof(ICategoryService), typeof(CategoryService));
 builder.Services.AddScoped(typeof(IMenuItemService), typeof(MenuItemService));
@@ -86,6 +87,12 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
     };
  });
+
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+.Enrich.FromLogContext()
+.CreateLogger();
+builder.Host.UseSerilog();
 
 
 builder.Services.AddValidatorsFromAssemblyContaining(typeof(CreateCategoryDto));
@@ -137,6 +144,25 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseMiddleware<SerilogMiddleware>();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<AppDbContext>();
+        context.Database.Migrate();
+
+        var identityContext = services.GetRequiredService<AppIdentityDbContext>();
+        identityContext.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Veritabani migrasyonu sirasinda bir hata olustu.");
+    }
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 

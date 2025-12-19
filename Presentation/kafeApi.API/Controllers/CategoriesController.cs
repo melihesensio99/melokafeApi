@@ -15,17 +15,24 @@ namespace kafeApi.API.Controllers
     public class CategoriesController : BaseController
     {
         private readonly ICategoryService _categoryService;
+        private readonly ILogger<CategoriesController> _logger;
 
-        public CategoriesController(ICategoryService categoryService)
+        public CategoriesController(ICategoryService categoryService, ILogger<CategoriesController> logger)
         {
             _categoryService = categoryService;
+            _logger = logger;
         }
 
         [HttpGet]
 
         public async Task<IActionResult> GetAllCategories()
         {
+            _logger.LogInformation("get-allcategories");
             var result = await _categoryService.GetAllCategories();
+            _logger.LogInformation("get-allcategories" + result.Success);
+            _logger.LogWarning("get-allcategories" + result.Success);
+            _logger.LogError("get-allcategories" + result.Success);
+            _logger.LogDebug("get-allcategories" + result.Success);
             return CreateResponse(result);
         }
 
@@ -36,7 +43,7 @@ namespace kafeApi.API.Controllers
             var result = await _categoryService.GetCategoryById(id);
             return CreateResponse(result);
         }
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> AddCategory(CreateCategoryDto createCategoryDto)
         {
