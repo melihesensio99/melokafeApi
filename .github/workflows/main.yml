@@ -11,12 +11,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+      - name: Setup .NET (with cache)
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.x"
+          cache: true
+          cache-dependency-path: |
+            **/packages.lock.json
+            **/*.csproj
 
       - name: Restore
         run: dotnet restore ./melokafeApi.sln
@@ -25,4 +29,4 @@ jobs:
         run: dotnet build ./melokafeApi.sln --configuration Release
 
       - name: Publish
-        run: dotnet publish ./melokafeApi.sln --no-build
+        run: dotnet publish ./melokafeApi.sln --no-build --configuration Release
