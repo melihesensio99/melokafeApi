@@ -1,0 +1,28 @@
+name: publish
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore
+        run: dotnet restore ./melokafeApi.sln
+
+      - name: Build
+        run: dotnet build ./melokafeApi.sln --configuration Release
+
+      - name: Publish
+        run: dotnet publish ./melokafeApi.sln --no-build
