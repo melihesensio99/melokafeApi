@@ -27,10 +27,10 @@ namespace KafeApi.Application.Services.Concrete
         private readonly AddMenuItemValidator _validation;
         private readonly UpdateMenuItemValidator _validationn;
         private readonly IMemoryCache _memoryCache;
-        private readonly ILogService _logger;
+        private readonly ILogService<MenuItemService> _logger;
         private readonly IConfiguration _configuration;
 
-        public MenuItemService(IGenericRepository<MenuItem> genericRepository, IMapper mapper, AddMenuItemValidator validation, UpdateMenuItemValidator validationn, IGenericRepository<Category> genericRepositoryCategory, IMemoryCache memoryCache, ILogService logger , IConfiguration configuration    )
+        public MenuItemService(IGenericRepository<MenuItem> genericRepository, IMapper mapper, AddMenuItemValidator validation, UpdateMenuItemValidator validationn, IGenericRepository<Category> genericRepositoryCategory, IMemoryCache memoryCache, ILogService<MenuItemService> logger, IConfiguration configuration)
         {
             _validation = validation;
             _validationn = validationn;
@@ -103,7 +103,12 @@ namespace KafeApi.Application.Services.Concrete
                 if (menuItems != null && menuItems.Any())
                 {
                     var expirationMinutes = _configuration.GetValue<int>("CacheSettings:DefaultExpirationMinutes", 10);
-                    _memoryCache.Set(CacheKeys.AllMenuItems, menuItems, TimeSpan.FromMinutes(expirationMinutes));
+                    _memoryCache.Set(CacheKeys.AllMenuItems, menuItems, options: new()
+                    {
+                        AbsoluteExpiration = DateTime.Now.AddMinutes(expirationMinutes),
+                        SlidingExpiration = TimeSpan.FromMinutes(expirationMinutes)
+
+                    });
                 }
 
             }
@@ -129,18 +134,18 @@ namespace KafeApi.Application.Services.Concrete
 
         public async Task<ResponseDto<DetailMenuItemDto>> GetMenuItemById(int id)
         {
-          MenuItem menuItems = null;   
-            if(_memoryCache.TryGetValue(CacheKeys.AllMenuItems , out List<MenuItem> cachedMenuItems))
+            MenuItem menuItems = null;
+            if (_memoryCache.TryGetValue(CacheKeys.AllMenuItems, out List<MenuItem> cachedMenuItems))
             {
-              
-               menuItems = cachedMenuItems.FirstOrDefault( x =>x.Id == id);  
+
+                menuItems = cachedMenuItems.FirstOrDefault(x => x.Id == id);
             }
-            if (menuItems == null) 
+            if (menuItems == null)
             {
                 _logger.LogInfo($"GetMenuItemById Cachede kayitli degil veritabanindan getiriliyor id : {id}");
                 menuItems = await _genericRepository.GetByIdAsync(id);
             }
-           
+
             if (menuItems == null)
             {
                 return new ResponseDto<DetailMenuItemDto>

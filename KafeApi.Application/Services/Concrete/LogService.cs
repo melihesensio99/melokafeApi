@@ -3,35 +3,30 @@ using Microsoft.Extensions.Logging;
 
 namespace KafeApi.Application.Services.Concrete
 {
-    public class LogService : ILogService
+    public class LogService<T> : ILogService<T>
     {
-        private readonly ILogger<LogService> _logger;
+        private readonly ILogger<T> _logger;
 
-        public LogService(ILogger<LogService> logger)
+        public LogService(ILogger<T> logger)
         {
             _logger = logger;
         }
 
         public void LogInfo(string message)
         {
-            _logger?.LogInformation("==> [INFO]: {Message}", message);
+            _logger?.LogInformation("{Message}", message);
         }
 
         public void LogWarning(string message)
         {
-            _logger?.LogWarning("==> [WARNING]: {Message}", message);
+            _logger?.LogWarning("{Message}", message);
         }
 
-        public void LogError(string message, Exception ex = null)
+        public void LogError(string message)
         {
-            if (ex != null)
-            {
-                _logger?.LogError(ex, "==> [ERROR]: {Message}", message);
-            }
-            else
-            {
-                _logger?.LogError("==> [ERROR]: {Message}", message);
-            }
+
+            _logger?.LogError("{Message}", message);
+
         }
     }
 }

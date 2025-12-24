@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using KafeApi.Application.Constants;
 using KafeApi.Application.Dtos.OrderDtos;
 using KafeApi.Application.Dtos.ResponseDtos;
 using KafeApi.Application.Interfaces;
@@ -22,7 +23,10 @@ namespace KafeApi.Application.Services.Concrete
         private readonly IGenericRepository<MenuItem> _menuItemRepository;
         private readonly IOrderRepository _orderRepository;
         private readonly IGenericRepository<Table> _tableRepository;
-        public OrderService(IGenericRepository<Order> genericRepository, CreateOrderValidator validationRules, IMapper mapper, UpdateOrderValidator validationRules1, IOrderItemRepository orderItemRepository, IGenericRepository<MenuItem> menuItemRepository, IOrderRepository orderRepository, IGenericRepository<Table> tableRepository)
+        private readonly ICacheService _cacheService;
+        private readonly ILogService<Order> _logService;
+
+        public OrderService(IGenericRepository<Order> genericRepository, CreateOrderValidator validationRules, IMapper mapper, UpdateOrderValidator validationRules1, IOrderItemRepository orderItemRepository, IGenericRepository<MenuItem> menuItemRepository, IOrderRepository orderRepository, IGenericRepository<Table> tableRepository, ICacheService cacheService, ILogService<Order> logService)
         {
             _genericRepository = genericRepository;
             _validationRules = validationRules;
@@ -31,6 +35,8 @@ namespace KafeApi.Application.Services.Concrete
             _menuItemRepository = menuItemRepository;
             _orderRepository = orderRepository;
             _tableRepository = tableRepository;
+            _cacheService = cacheService;
+            _logService = logService;
         }
         public async Task<ResponseDto<object>> AddOrder(CreateOrderDto createOrderDto)
         {
@@ -59,6 +65,7 @@ namespace KafeApi.Application.Services.Concrete
             }
             result.TotalPrice = totalPrice;
             await _genericRepository.CreateAsync(result);
+            _cacheService.Remove(CacheKeys.AllOrder);
             return new ResponseDto<object>
             {
                 Data = result,
@@ -84,6 +91,7 @@ namespace KafeApi.Application.Services.Concrete
                 };
             }
             await _genericRepository.DeleteAsync(itemToDelete);
+            _cacheService.Remove(CacheKeys.AllOrder);
             return new ResponseDto<object>
             {
                 Data = null,
@@ -97,8 +105,10 @@ namespace KafeApi.Application.Services.Concrete
 
         public async Task<ResponseDto<List<ResultOrderDto>>> GetAllOrder()
         {
-            var allOrder = await _orderRepository.GetAllOrderWithDetailAsync();
-            if (allOrder.Count == 0)
+            if (!_cacheService.TryGetValue(CacheKeys.AllOrder, out List<Order> orders))
+                _logService.LogInfo("Cache boş veriler veritabanindan çekiliyor...");
+            orders = await _orderRepository.GetAllOrderWithDetailAsync();
+            if (orders.Count == 0)
             {
                 return new ResponseDto<List<ResultOrderDto>>
                 {
@@ -108,7 +118,7 @@ namespace KafeApi.Application.Services.Concrete
                     Message = "Order bulunamadi!!"
                 };
             }
-            var result = _mapper.Map<List<ResultOrderDto>>(allOrder);
+            var result = _mapper.Map<List<ResultOrderDto>>(orders);
             return new ResponseDto<List<ResultOrderDto>>()
             {
                 Data = result,
@@ -119,22 +129,24 @@ namespace KafeApi.Application.Services.Concrete
 
         public async Task<ResponseDto<DetailOrderDto>> GetOrderById(int id)
         {
-            var orderById = await _orderRepository.GetOrderWithDetailAsync(id);
-            if (orderById == null)
-            {
-                return new ResponseDto<DetailOrderDto>
+            Order order = null;
+            if (_cacheService.TryGetValue(CacheKeys.AllOrder, out List<Order> orders))
+                order = orders.FirstOrDefault(x => x.Id == id);
+            if (order == null)
+                _logService.LogInfo("Cache boş veriler veritabanindan getiriliyor!!!");
+            order = await _orderRepository.GetOrderWithDetailAsync(id);
+            if (order == null)
+                return new ResponseDto<DetailOrderDto>()
                 {
-                    Data = null,
                     Success = false,
+                    Message = "Order bulunamadi.",
                     ErrorCode = ErrorCodes.NOT_FOUND_STATUS,
-                    Message = "Order bulunamadi!!"
                 };
-            }
-            var result = _mapper.Map<DetailOrderDto>(orderById);
+            var result = _mapper.Map<DetailOrderDto>(order);
             return new ResponseDto<DetailOrderDto>()
             {
                 Data = result,
-                Success = true
+                Success = true,
             };
 
         }
@@ -175,6 +187,7 @@ namespace KafeApi.Application.Services.Concrete
             }
             result.TotalPrice = totalPrice;
             await _genericRepository.UpdateAsync(result);
+            _cacheService.Remove(CacheKeys.AllOrder);
             return new ResponseDto<object>
             {
                 Data = result,

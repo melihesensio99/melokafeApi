@@ -1,9 +1,9 @@
 namespace KafeApi.Application.Services.Abstract
 {
-    public interface ILogService
+    public interface ILogService<T>
     {
         void LogInfo(string message);
         void LogWarning(string message);
-        void LogError(string message, Exception ex = null);
+        void LogError(string message);
     }
 }

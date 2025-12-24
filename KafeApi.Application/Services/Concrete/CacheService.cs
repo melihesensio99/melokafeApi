@@ -12,14 +12,14 @@ namespace KafeApi.Application.Services.Concrete
             _memoryCache = memoryCache;
         }
 
-        public T Get<T>(string key)
-        {
-            return _memoryCache.Get<T>(key);
-        }
+        //public T Get<T>(string key)
+        //{
+        //    return _memoryCache.Get<T>(key);
+        //}
 
-        public void Set<T>(string key, T value, TimeSpan expiration)
+        public void Set<T>(string key, T value ,MemoryCacheEntryOptions options)
         {
-            _memoryCache.Set(key, value, expiration);
+            _memoryCache.Set(key, value , options);
         }
 
         public void Remove(string key)

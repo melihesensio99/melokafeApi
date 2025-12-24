@@ -36,9 +36,8 @@ Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
     .CreateLogger();
-
 builder.Host.UseSerilog();
-
+builder.Services.AddStackExchangeRedisCache(options => options.Configuration = "localhost:6379");
 builder.Services.AddMemoryCache();
 builder.Services.AddResponseCaching();
 
@@ -76,7 +75,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICacheService, CacheService>();
-builder.Services.AddScoped<ILogService, LogService>();
+builder.Services.AddScoped(typeof(ILogService<>), typeof(LogService<>));
 builder.Services.AddScoped<TokenHelpers>();
 
 
@@ -96,7 +95,7 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
     };
- });
+});
 
 
 builder.Services.AddValidatorsFromAssemblyContaining(typeof(CreateCategoryDto));

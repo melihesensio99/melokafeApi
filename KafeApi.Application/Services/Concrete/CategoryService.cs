@@ -6,11 +6,14 @@ using KafeApi.Application.Interfaces;
 using KafeApi.Application.Services.Abstract;
 using KafeApi.Application.Validators.Category;
 using KafeApi.Domain.Entities;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace KafeApi.Application.Services.Concrete
@@ -24,9 +27,10 @@ namespace KafeApi.Application.Services.Concrete
         private readonly UpdateCategoryValidator _validationn;
         private readonly ICacheService _cacheService;
         private readonly IConfiguration _configuration;
-        private readonly ILogService _logger;
+        private readonly ILogService<Category> _logger;
+        private readonly IDistributedCache _distributedCache;
 
-        public CategoryService(IGenericRepository<Category> genericRepository, IMapper mapper, AddCategoryValidator validation, UpdateCategoryValidator validationn, ICategoryRepository categoryRepository, ICacheService cacheService, IConfiguration configuration, ILogService logService)
+        public CategoryService(IGenericRepository<Category> genericRepository, IMapper mapper, AddCategoryValidator validation, UpdateCategoryValidator validationn, ICategoryRepository categoryRepository, ICacheService cacheService, IConfiguration configuration, ILogService<Category> logService, IDistributedCache distributedCache)
         {
             _genericRepository = genericRepository;
             _mapper = mapper;
@@ -36,7 +40,7 @@ namespace KafeApi.Application.Services.Concrete
             _cacheService = cacheService;
             _configuration = configuration;
             _logger = logService;
-
+            _distributedCache = distributedCache;
         }
 
         public async Task<ResponseDto<object>> AddCategory(CreateCategoryDto createCategoryDto)
@@ -94,16 +98,44 @@ namespace KafeApi.Application.Services.Concrete
 
         public async Task<ResponseDto<List<ResultCategoryDto>>> GetAllCategories()
         {
-            if (!_cacheService.TryGetValue(CacheKeys.AllCategories, out List<Category> categories))
+            List<Category> categories;
+            var cache = await _distributedCache.GetStringAsync(CacheKeys.AllCategories);
+            if (cache == null)
             {
-                _logger.LogInfo("Kategoriler cache'de bulunamadı, veritabanından getiriliyor...");
+                _logger.LogInfo("Redis boş, veritabanına gidiliyor...");
                 categories = await _genericRepository.GetAllAsync();
-                if (categories != null && categories.Any())
-                {
-                    var expirationMinutes = _configuration.GetValue<int>("CacheSettings:DefaultExpirationMinutes", 10);
-                    _cacheService.Set(CacheKeys.AllCategories, categories, TimeSpan.FromMinutes(expirationMinutes));
-                }
             }
+            else
+            {
+                categories = JsonSerializer.Deserialize<List<Category>>(cache);
+                _logger.LogInfo("Veriler Redis'ten geldi.");
+            }
+            if (categories != null && categories.Any())
+            {
+                string jsonveri = JsonSerializer.Serialize(categories);
+                var options = new DistributedCacheEntryOptions()
+                {
+                    AbsoluteExpiration = DateTime.Now.AddMinutes(30),
+                    SlidingExpiration = TimeSpan.FromMinutes(5),
+                };
+                await _distributedCache.SetStringAsync(CacheKeys.AllCategories, jsonveri, options);
+            }
+
+            //if (!_cacheService.TryGetValue(CacheKeys.AllCategories, out List<Category> categories))
+            //{
+            //    _logger.LogInfo("Kategoriler cache'de bulunamadı, veritabanından getiriliyor...");
+            //    categories = await _genericRepository.GetAllAsync();
+            //    if (categories != null && categories.Any())
+            //    {
+            //        var expirationMinutes = _configuration.GetValue<int>("CacheSettings:DefaultExpirationMinutes");
+            //        _cacheService.Set(CacheKeys.AllCategories, categories, options: new()
+            //        {
+            //            AbsoluteExpiration = DateTime.Now.AddMinutes(expirationMinutes),
+            //            SlidingExpiration = TimeSpan.FromMinutes(expirationMinutes),
+
+            //        });
+            //    }
+            //}
 
             if (categories == null || !categories.Any())
             {
@@ -151,7 +183,7 @@ namespace KafeApi.Application.Services.Concrete
         {
             Category category = null;
 
-          
+
             if (_cacheService.TryGetValue(CacheKeys.AllCategories, out List<Category> cachedCategories))
             {
                 category = cachedCategories.FirstOrDefault(x => x.Id == id);
